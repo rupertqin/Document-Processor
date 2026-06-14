@@ -69,11 +69,6 @@ enum CompressionPreset: String, CaseIterable, Identifiable {
 class PDFCompressor: ObservableObject {
     @Published var inputURL: URL?
     @Published var inputSize: String?
-    @Published var resolution: Double = 140
-    @Published var useGS = true
-    @Published var useQPDF = true
-    @Published var forceJPEG = true
-    @Published var jpegQuality: Double = 30
     @Published var isCompressing = false
     @Published var progress: Double = 0
     @Published var statusText = "准备就绪"
@@ -101,20 +96,23 @@ class PDFCompressor: ObservableObject {
     
     // MARK: - Compression Preset
 
-    @Published var selectedPreset: CompressionPreset = .custom {
-        didSet {
-            guard oldValue != newValue else { return }
-            guard newValue != .custom else { return }
-            isApplyingPreset = true
-            defer { isApplyingPreset = false }
-            newValue.apply(to: self)
+    @Published var selectedPreset: CompressionPreset = .custom
+
+    /// 标记当前是否正在应用预设，防止参数 onChange 触发 syncPresetSelection 造成循环
+    private var isApplyingPreset = false
+
+    /// 应用预设参数（由视图层 .onChange 调用）
+    func applyPreset(_ preset: CompressionPreset) {
+        guard preset != .custom else { return }
+        isApplyingPreset = true
+        preset.apply(to: self)
+        // 延迟重置标志，确保参数的 .onChange 不会误触发 syncPresetSelection
+        DispatchQueue.main.async { [weak self] in
+            self?.isApplyingPreset = false
         }
     }
 
-    /// 标记当前是否正在应用预设，防止 didSet 触发 syncPresetSelection 造成循环
-    private var isApplyingPreset = false
-
-    /// 根据当前各项参数同步更新 selectedPreset（手动调节参数后调用）
+    /// 根据当前各项参数同步更新 selectedPreset（由视图层参数 .onChange 调用）
     func syncPresetSelection() {
         guard !isApplyingPreset else { return }
         for preset in CompressionPreset.allCases where preset != .custom {
@@ -130,21 +128,11 @@ class PDFCompressor: ObservableObject {
         }
     }
 
-    @Published var resolution: Double = 140 {
-        didSet { syncPresetSelection() }
-    }
-    @Published var useGS = true {
-        didSet { syncPresetSelection() }
-    }
-    @Published var useQPDF = true {
-        didSet { syncPresetSelection() }
-    }
-    @Published var forceJPEG = true {
-        didSet { syncPresetSelection() }
-    }
-    @Published var jpegQuality: Double = 30 {
-        didSet { syncPresetSelection() }
-    }
+    @Published var resolution: Double = 140
+    @Published var useGS = true
+    @Published var useQPDF = true
+    @Published var forceJPEG = true
+    @Published var jpegQuality: Double = 30
 
     struct CompressResult {
         let outputURL: URL
@@ -276,12 +264,12 @@ class PDFCompressor: ObservableObject {
         let qpdfAvailable = findExecutablePath("qpdf") != nil
 
         if useGS && !gsAvailable {
-            missingTools.append("ghostscript")
+            if !missingTools.contains("ghostscript") { missingTools.append("ghostscript") }
             statusText = "缺少 ghostscript，请先安装"
             return
         }
         if useQPDF && !qpdfAvailable {
-            missingTools.append("qpdf")
+            if !missingTools.contains("qpdf") { missingTools.append("qpdf") }
             statusText = "缺少 qpdf，请先安装"
             return
         }
@@ -475,11 +463,11 @@ class PDFCompressor: ObservableObject {
     static func gsProgressParser(totalPages: Int) -> (String) -> (Double, String)? {
         var total = totalPages
         var current = 0
+        let pagesRegex = try? NSRegularExpression(pattern: "Processing pages \\d+ through (\\d+)")
         return { line in
             // 解析总页数："Processing pages 1 through 10."
             if line.contains("Processing pages") {
-                let pattern = "Processing pages \\d+ through (\\d+)"
-                if let regex = try? NSRegularExpression(pattern: pattern),
+                if let regex = pagesRegex,
                    let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
                    let range = Range(match.range(at: 1), in: line) {
                     total = Int(line[range]) ?? total
@@ -577,7 +565,7 @@ class PDFCompressor: ObservableObject {
             "-dCompressFonts=true",
             "-dSubsetFonts=true",
             "-dNOPAUSE",
-            "-dQUIET",
+            "-dNOPROMPT",
             "-dBATCH",
             "-sOutputFile=\(output.path)",
         ]
@@ -753,22 +741,30 @@ class PDFCompressor: ObservableObject {
                     finalOutput = gsOutput
                 }
 
-                // 写入结果
+                // 写入结果（含防劣化保护）
+                let inputSize = (try? FileManager.default.attributesOfItem(atPath: input.path)[.size] as? UInt64) ?? 0
+
                 if FileManager.default.fileExists(atPath: outputURL.path) {
                     try FileManager.default.removeItem(at: outputURL)
                 }
                 try FileManager.default.moveItem(at: finalOutput, to: outputURL)
                 try? FileManager.default.removeItem(at: tempDir)
 
-                let inputSize = (try? FileManager.default.attributesOfItem(atPath: input.path)[.size] as? UInt64) ?? 0
+                // 防劣化：压缩后反而变大则替换为原文件
                 let finalSize = (try? FileManager.default.attributesOfItem(atPath: outputURL.path)[.size] as? UInt64) ?? 0
-                let ratio = inputSize > 0 ? String(format: "%.1f%%", Double(finalSize) / Double(inputSize) * 100) : "—"
+                if finalSize > inputSize && inputSize > 0 {
+                    try? FileManager.default.removeItem(at: outputURL)
+                    try FileManager.default.copyItem(at: input, to: outputURL)
+                }
+
+                let actualSize = (try? FileManager.default.attributesOfItem(atPath: outputURL.path)[.size] as? UInt64) ?? 0
+                let ratio = inputSize > 0 ? String(format: "%.1f%%", Double(actualSize) / Double(inputSize) * 100) : "—"
 
                 await MainActor.run {
                     self.batchResults.append(BatchResult(
                         inputURL: input, outputURL: outputURL,
                         originalSize: self.formattedSize(inputSize),
-                        finalSize: self.formattedSize(finalSize),
+                        finalSize: self.formattedSize(actualSize),
                         compressionRatio: ratio, success: true, message: "完成"
                     ))
                 }
@@ -795,11 +791,15 @@ class PDFCompressor: ObservableObject {
 
     // MARK: - Helpers
 
+    private static let sizeFormatter: ByteCountFormatter = {
+        let f = ByteCountFormatter()
+        f.countStyle = .file
+        return f
+    }()
+
     private func formattedSize(_ bytes: UInt64?) -> String {
         guard let bytes = bytes, bytes > 0 else { return "未知" }
-        let formatter = ByteCountFormatter()
-        formatter.countStyle = .file
-        return formatter.string(fromByteCount: Int64(bytes))
+        return Self.sizeFormatter.string(fromByteCount: Int64(bytes))
     }
 }
 

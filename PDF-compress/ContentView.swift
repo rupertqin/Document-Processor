@@ -46,6 +46,16 @@ struct ContentView: View {
         }
         .background(Color(NSColor.windowBackgroundColor))
         .frame(minWidth: 480, minHeight: 360)
+        // 预设联动：选择预设 → 应用参数
+        .onChange(of: compressor.selectedPreset) { _, newValue in
+            compressor.applyPreset(newValue)
+        }
+        // 预设联动：手动调参 → 同步预设标签
+        .onChange(of: compressor.resolution) { _, _ in compressor.syncPresetSelection() }
+        .onChange(of: compressor.useGS) { _, _ in compressor.syncPresetSelection() }
+        .onChange(of: compressor.useQPDF) { _, _ in compressor.syncPresetSelection() }
+        .onChange(of: compressor.forceJPEG) { _, _ in compressor.syncPresetSelection() }
+        .onChange(of: compressor.jpegQuality) { _, _ in compressor.syncPresetSelection() }
         .fileImporter(
             isPresented: $showFilePicker,
             allowedContentTypes: [.pdf],
