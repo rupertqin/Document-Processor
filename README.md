@@ -1,6 +1,12 @@
-# PDF Compressor - macOS 原生 PDF 压缩工具
+# Document Processor - macOS 原生文档处理工具
 
-一个轻量的 macOS 原生应用，用 Ghostscript + qpdf 压缩 PDF 文件。
+一个轻量的 macOS 原生应用，提供文档处理相关功能。
+
+## 功能
+
+### PDF 压缩
+
+用 Ghostscript + qpdf 压缩 PDF 文件。
 
 ## 使用方法
 
@@ -13,21 +19,8 @@ brew install ghostscript qpdf
 ### 2. 打开 Xcode 项目
 
 ```bash
-# 方式一：直接用 Xcode 打开
-open PDFCompressor.xcodeproj
-
-# 方式二：先创建 Xcode 项目
+open Document-processor.xcodeproj
 ```
-
-如果还没有 Xcode 项目：
-
-1. 打开 Xcode → **File → New → Project**
-2. 选择 **macOS → App**，点 Next
-3. Product Name: `PDFCompressor`，Interface: **SwiftUI**，Language: **Swift**
-4. 点 Create，保存到 `PDFCompressor/` 目录
-5. 用 `PDFCompressor/PDFCompressor/ContentView.swift` 替换生成的 ContentView.swift
-6. 把 `PDFCompressor/PDFCompressor/PDFCompressor.swift` 拖进项目
-7. 点击 Run ▶ 编译运行
 
 ### 3. 使用
 
@@ -37,8 +30,6 @@ open PDFCompressor.xcodeproj
 4. 压缩后的文件在原 PDF 同级目录生成 `xxx.compressed.pdf`
 
 ## 压缩原理
-
-复用 `article-spider` 项目的相同逻辑：
 
 1. **Ghostscript** — 降采样图片分辨率、压缩字体、子集化
 2. **qpdf** — 线性化 PDF，进一步减小体积
