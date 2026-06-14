@@ -2,6 +2,69 @@ import Foundation
 import AppKit
 import Combine
 
+// MARK: - Compression Presets
+
+enum CompressionPreset: String, CaseIterable, Identifiable {
+    case low = "低质量（最小体积）"
+    case medium = "中质量（推荐）"
+    case high = "高质量（保真）"
+    case custom = "自定义"
+    
+    var id: String { rawValue }
+    
+    /// 应用到 PDFCompressor 的参数
+    func apply(to compressor: PDFCompressor) {
+        switch self {
+        case .low:
+            compressor.resolution = 72
+            compressor.forceJPEG = true
+            compressor.jpegQuality = 20
+            compressor.useGS = true
+            compressor.useQPDF = true
+        case .medium:
+            compressor.resolution = 140
+            compressor.forceJPEG = true
+            compressor.jpegQuality = 30
+            compressor.useGS = true
+            compressor.useQPDF = true
+        case .high:
+            compressor.resolution = 200
+            compressor.forceJPEG = false
+            compressor.jpegQuality = 50
+            compressor.useGS = true
+            compressor.useQPDF = true
+        case .custom:
+            break
+        }
+    }
+    
+    /// 判断给定的压缩机参数是否匹配当前预设
+    func matches(_ compressor: PDFCompressor) -> Bool {
+        switch self {
+        case .low:
+            return compressor.resolution == 72
+                && compressor.forceJPEG == true
+                && compressor.jpegQuality == 20
+                && compressor.useGS == true
+                && compressor.useQPDF == true
+        case .medium:
+            return compressor.resolution == 140
+                && compressor.forceJPEG == true
+                && compressor.jpegQuality == 30
+                && compressor.useGS == true
+                && compressor.useQPDF == true
+        case .high:
+            return compressor.resolution == 200
+                && compressor.forceJPEG == false
+                && compressor.jpegQuality == 50
+                && compressor.useGS == true
+                && compressor.useQPDF == true
+        case .custom:
+            return false
+        }
+    }
+}
+
 @MainActor
 class PDFCompressor: ObservableObject {
     @Published var inputURL: URL?
@@ -17,6 +80,71 @@ class PDFCompressor: ObservableObject {
     @Published var result: CompressResult?
     @Published var missingTools: [String] = []
     @Published var isInstalling = false
+    
+    // MARK: - Batch Compression
+    
+    @Published var inputURLs: [URL] = []
+    @Published var batchResults: [BatchResult] = []
+    @Published var isBatchCompressing = false
+    @Published var currentBatchIndex: Int = 0
+    @Published var batchProgress: Double = 0
+    
+    struct BatchResult {
+        let inputURL: URL
+        let outputURL: URL?
+        let originalSize: String
+        let finalSize: String
+        let compressionRatio: String
+        let success: Bool
+        let message: String
+    }
+    
+    // MARK: - Compression Preset
+
+    @Published var selectedPreset: CompressionPreset = .custom {
+        didSet {
+            guard oldValue != newValue else { return }
+            guard newValue != .custom else { return }
+            isApplyingPreset = true
+            defer { isApplyingPreset = false }
+            newValue.apply(to: self)
+        }
+    }
+
+    /// 标记当前是否正在应用预设，防止 didSet 触发 syncPresetSelection 造成循环
+    private var isApplyingPreset = false
+
+    /// 根据当前各项参数同步更新 selectedPreset（手动调节参数后调用）
+    func syncPresetSelection() {
+        guard !isApplyingPreset else { return }
+        for preset in CompressionPreset.allCases where preset != .custom {
+            if preset.matches(self) {
+                if selectedPreset != preset {
+                    selectedPreset = preset
+                }
+                return
+            }
+        }
+        if selectedPreset != .custom {
+            selectedPreset = .custom
+        }
+    }
+
+    @Published var resolution: Double = 140 {
+        didSet { syncPresetSelection() }
+    }
+    @Published var useGS = true {
+        didSet { syncPresetSelection() }
+    }
+    @Published var useQPDF = true {
+        didSet { syncPresetSelection() }
+    }
+    @Published var forceJPEG = true {
+        didSet { syncPresetSelection() }
+    }
+    @Published var jpegQuality: Double = 30 {
+        didSet { syncPresetSelection() }
+    }
 
     struct CompressResult {
         let outputURL: URL
@@ -187,10 +315,11 @@ class PDFCompressor: ObservableObject {
                     await self.updateProgress(0.1, "正在压缩（gs）…")
                     let gsPath = try await self.findExecutable("gs", path: envPATH)
 
-                    let gsResult = try await self.runProcessWithOutput(
+                    let gsResult = try await self.runProcessWithProgress(
                         executable: gsPath,
                         arguments: self.gsArgs(input: input, output: gsOutput, resolution: resolution, forceJPEG: shouldForceJPEG, jpegQuality: shouldJpegQuality),
-                        path: envPATH
+                        path: envPATH,
+                        progressParser: PDFCompressor.gsProgressParser(totalPages: 0)
                     )
 
                     if !gsResult.stderr.isEmpty {
@@ -271,9 +400,104 @@ class PDFCompressor: ObservableObject {
 
     // MARK: - Process Runner (non-blocking, captures stderr)
 
+    /// 运行外部进程，并实时解析 stderr 进度（支持 Ghostscript 页码进度）
+    /// - Parameter progressParser: 解析 stderr 每一行，返回 (进度 0.0-1.0, 状态文本)，无法识别则返回 nil
+    private func runProcessWithProgress(
+        executable: URL,
+        arguments: [String],
+        path: String,
+        progressParser: ((String) -> (Double, String)?)? = nil
+    ) async throws -> ProcessResult {
+        try await withCheckedThrowingContinuation { continuation in
+            let process = Process()
+            process.executableURL = executable
+            process.arguments = arguments
+            process.environment = ["PATH": path]
+
+            let outPipe = Pipe()
+            let errPipe = Pipe()
+            process.standardOutput = outPipe
+            process.standardError = errPipe
+
+            let errHandle = errPipe.fileHandleForReading
+            let outHandle = outPipe.fileHandleForReading
+
+            var stderrLines = ""
+
+            // 实时读取 stderr
+            errHandle.readabilityHandler = { handle in
+                let data = handle.availableData
+                guard !data.isEmpty, let chunk = String(data: data, encoding: .utf8) else { return }
+                stderrLines += chunk
+                if let parser = progressParser {
+                    for line in chunk.components(separatedBy: "\n") where !line.isEmpty {
+                        if let (prog, text) = parser(line) {
+                            Task { @MainActor in
+                                self.progress = prog
+                                self.statusText = text
+                            }
+                        }
+                    }
+                }
+            }
+
+            process.terminationHandler = { proc in
+                errHandle.readabilityHandler = nil
+                outHandle.readabilityHandler = nil
+
+                let outData = outHandle.readDataToEndOfFile()
+                let stdout = String(data: outData, encoding: .utf8) ?? ""
+
+                if proc.terminationStatus == 0 {
+                    continuation.resume(returning: ProcessResult(stdout: stdout, stderr: stderrLines))
+                } else {
+                    continuation.resume(throwing: CompressError.processFailed(
+                        "\(executable.lastPathComponent) 退出码: \(proc.terminationStatus)\n\(stderrLines)"
+                    ))
+                }
+            }
+
+            do {
+                try process.run()
+            } catch {
+                continuation.resume(throwing: error)
+            }
+        }
+    }
+
     struct ProcessResult {
         let stdout: String
         let stderr: String
+    }
+
+    /// Ghostscript stderr 进度解析器
+    /// 解析 "Processing pages 1 through N" 获取总页数，解析 "Page M" 获取当前进度
+    static func gsProgressParser(totalPages: Int) -> (String) -> (Double, String)? {
+        var total = totalPages
+        var current = 0
+        return { line in
+            // 解析总页数："Processing pages 1 through 10."
+            if line.contains("Processing pages") {
+                let pattern = "Processing pages \\d+ through (\\d+)"
+                if let regex = try? NSRegularExpression(pattern: pattern),
+                   let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
+                   let range = Range(match.range(at: 1), in: line) {
+                    total = Int(line[range]) ?? total
+                }
+                return nil
+            }
+            // 解析当前页："Page 1"
+            if line.hasPrefix("Page ") {
+                let numStr = line.dropFirst(5).trimmingCharacters(in: .whitespaces)
+                if let num = Int(numStr) {
+                    current = num
+                }
+                let prog = total > 0 ? Double(current) / Double(total) : 0
+                let scaled = 0.1 + prog * 0.5  // gs 阶段占 0.1~0.6
+                return (scaled, "正在压缩（gs）… 第 \(current)/\(total) 页")
+            }
+            return nil
+        }
     }
 
     private func runProcessWithOutput(executable: URL, arguments: [String], path: String) async throws -> ProcessResult {
@@ -430,6 +654,143 @@ class PDFCompressor: ObservableObject {
         statusText = "失败: \(error.localizedDescription)"
         isCompressing = false
         print("[error] \(error.localizedDescription)")
+    }
+
+    // MARK: - Batch Compression
+
+    /// 添加文件到批量压缩队列（自动去重）
+    func addInputURLs(_ urls: [URL]) {
+        let existing = Set(inputURLs.map { $0.path })
+        let new = urls.filter { !existing.contains($0.path) }
+        guard !new.isEmpty else { return }
+        inputURLs.append(contentsOf: new)
+        if inputURL == nil, let first = inputURLs.first {
+            load(first)   // 自动加载第一个文件到预览
+        }
+        checkTools()
+    }
+
+    /// 清空批量队列
+    func clearBatch() {
+        inputURLs.removeAll()
+        batchResults.removeAll()
+        currentBatchIndex = 0
+        batchProgress = 0
+    }
+
+    /// 开始批量压缩
+    func compressBatch() {
+        guard !inputURLs.isEmpty, !isBatchCompressing else { return }
+        isBatchCompressing = true
+        currentBatchIndex = 0
+        batchProgress = 0
+        batchResults.removeAll()
+        statusText = "准备批量压缩…"
+
+        Task.detached { [weak self] in
+            guard let self else { return }
+            await self.runBatch()
+        }
+    }
+
+    private func runBatch() async {
+        let envPATH = expandedPATH
+        let shouldUseGS = useGS && findExecutablePath("gs") != nil
+        let shouldUseQPDF = useQPDF && findExecutablePath("qpdf") != nil
+        let shouldForceJPEG = forceJPEG
+        let shouldJpegQuality = Int(jpegQuality)
+        let resolution = Int(self.resolution)
+
+        for (idx, input) in inputURLs.enumerated() {
+            await MainActor.run {
+                self.currentBatchIndex = idx
+                self.batchProgress = Double(idx) / Double(self.inputURLs.count)
+                self.statusText = "批量压缩中 (\(idx+1)/\(self.inputURLs.count))…"
+            }
+
+            let outputURL = input.deletingLastPathComponent()
+                .appendingPathComponent("\(input.deletingPathExtension().lastPathComponent).compressed.pdf")
+
+            do {
+                // 清理临时目录
+                try? FileManager.default.removeItem(at: tempDir)
+                try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+                let gsOutput = tempDir.appendingPathComponent("gs_output.pdf")
+                let qpdfOutput = tempDir.appendingPathComponent("qpdf_output.pdf")
+
+                if shouldUseGS {
+                    await MainActor.run { self.statusText = "批量压缩中 (\(idx+1)/\(self.inputURLs.count)) gs…" }
+                    let gsPath = try await findExecutable("gs", path: envPATH)
+                    _ = try await runProcessWithProgress(
+                        executable: gsPath,
+                        arguments: gsArgs(input: input, output: gsOutput, resolution: resolution, forceJPEG: shouldForceJPEG, jpegQuality: shouldJpegQuality),
+                        path: envPATH,
+                        progressParser: PDFCompressor.gsProgressParser(totalPages: 0)
+                    )
+                    guard FileManager.default.fileExists(atPath: gsOutput.path),
+                          (try? FileManager.default.attributesOfItem(atPath: gsOutput.path)[.size] as? UInt64) ?? 0 > 0 else {
+                        throw CompressError.processFailed("gs 未生成有效输出")
+                    }
+                } else {
+                    try FileManager.default.copyItem(at: input, to: gsOutput)
+                }
+
+                let finalOutput: URL
+                if shouldUseQPDF {
+                    await MainActor.run { self.statusText = "批量压缩中 (\(idx+1)/\(self.inputURLs.count)) qpdf…" }
+                    let qpdfPath = try await findExecutable("qpdf", path: envPATH)
+                    _ = try await runProcessWithProgress(
+                        executable: qpdfPath,
+                        arguments: ["--linearize", gsOutput.path, qpdfOutput.path],
+                        path: envPATH
+                    )
+                    guard FileManager.default.fileExists(atPath: qpdfOutput.path) else {
+                        throw CompressError.processFailed("qpdf 未生成有效输出")
+                    }
+                    finalOutput = qpdfOutput
+                } else {
+                    finalOutput = gsOutput
+                }
+
+                // 写入结果
+                if FileManager.default.fileExists(atPath: outputURL.path) {
+                    try FileManager.default.removeItem(at: outputURL)
+                }
+                try FileManager.default.moveItem(at: finalOutput, to: outputURL)
+                try? FileManager.default.removeItem(at: tempDir)
+
+                let inputSize = (try? FileManager.default.attributesOfItem(atPath: input.path)[.size] as? UInt64) ?? 0
+                let finalSize = (try? FileManager.default.attributesOfItem(atPath: outputURL.path)[.size] as? UInt64) ?? 0
+                let ratio = inputSize > 0 ? String(format: "%.1f%%", Double(finalSize) / Double(inputSize) * 100) : "—"
+
+                await MainActor.run {
+                    self.batchResults.append(BatchResult(
+                        inputURL: input, outputURL: outputURL,
+                        originalSize: self.formattedSize(inputSize),
+                        finalSize: self.formattedSize(finalSize),
+                        compressionRatio: ratio, success: true, message: "完成"
+                    ))
+                }
+
+            } catch {
+                await MainActor.run {
+                    self.batchResults.append(BatchResult(
+                        inputURL: input, outputURL: input,
+                        originalSize: "—", finalSize: "—",
+                        compressionRatio: "—", success: false,
+                        message: error.localizedDescription
+                    ))
+                }
+            }
+        }
+
+        await MainActor.run {
+            self.isBatchCompressing = false
+            self.batchProgress = 1.0
+            let ok = self.batchResults.filter { $0.success }.count
+            self.statusText = "批量完成（\(ok)/\(self.inputURLs.count) 成功）"
+        }
     }
 
     // MARK: - Helpers

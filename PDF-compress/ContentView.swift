@@ -23,11 +23,18 @@ struct ContentView: View {
             }
 
             // 选项
-            if compressor.inputURL != nil && compressor.missingTools.isEmpty {
+            if compressor.missingTools.isEmpty {
                 optionsPanel
                     .padding(.horizontal, 20)
                     .padding(.top, 12)
                     .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
+            // 批量队列
+            if !compressor.inputURLs.isEmpty {
+                batchFileList
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
             }
 
             Spacer(minLength: 0)
@@ -39,9 +46,19 @@ struct ContentView: View {
         }
         .background(Color(NSColor.windowBackgroundColor))
         .frame(minWidth: 480, minHeight: 360)
-        .fileImporter(isPresented: $showFilePicker, allowedContentTypes: [.pdf]) { result in
-            if case .success(let url) = result {
-                compressor.load(url)
+        .fileImporter(
+            isPresented: $showFilePicker,
+            allowedContentTypes: [.pdf],
+            allowsMultipleSelection: true
+        ) { result in
+            guard case .success(let urls) = result, !urls.isEmpty else { return }
+            // 离开当前视图周期再修改状态，避免 Publishing changes 错误
+            DispatchQueue.main.async {
+                if urls.count == 1 {
+                    compressor.load(urls[0])
+                } else {
+                    compressor.addInputURLs(urls)
+                }
             }
         }
     }
@@ -145,13 +162,33 @@ struct ContentView: View {
             }
         }
         .onDrop(of: [.fileURL], isTargeted: $isTargeted) { providers in
-            guard let item = providers.first else { return false }
-            item.loadItem(forTypeIdentifier: UTType.fileURL.identifier) { data, _ in
-                if let data = data as? Data,
-                   let url = URL(dataRepresentation: data, relativeTo: nil) {
-                    DispatchQueue.main.async { compressor.load(url) }
+            var urls: [URL] = []
+            let group = DispatchGroup()
+
+            for provider in providers {
+                group.enter()
+                provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier) { data, _ in
+                    defer { group.leave() }
+                    if let data = data as? Data,
+                       let url = URL(dataRepresentation: data, relativeTo: nil),
+                       url.pathExtension.lowercased() == "pdf" {
+                        urls.append(url)
+                    }
                 }
             }
+
+            group.notify(queue: .main) {
+                guard !urls.isEmpty else { return }
+                // 用 async 确保完全离开当前视图更新周期
+                DispatchQueue.main.async {
+                    if urls.count == 1 {
+                        compressor.load(urls[0])
+                    } else {
+                        compressor.addInputURLs(urls)
+                    }
+                }
+            }
+
             return true
         }
         .onTapGesture {
@@ -161,6 +198,21 @@ struct ContentView: View {
 
     // MARK: - Options
 
+    private var presetPicker: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("快速预设")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Picker("", selection: $compressor.selectedPreset) {
+                ForEach(CompressionPreset.allCases) { preset in
+                    Text(preset.rawValue).tag(preset)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(minHeight: 30)
+        }
+    }
+
     private var optionsPanel: some View {
         VStack(spacing: 10) {
             HStack {
@@ -168,6 +220,8 @@ struct ContentView: View {
                     .font(.headline)
                 Spacer()
             }
+
+            presetPicker
 
             HStack(spacing: 16) {
                 // 分辨率
@@ -213,18 +267,85 @@ struct ContentView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
+    // MARK: - Batch File List
+
+    private var batchFileList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("批量队列（\(compressor.inputURLs.count) 个文件）")
+                    .font(.headline)
+                Spacer()
+                if compressor.isBatchCompressing {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("\(compressor.currentBatchIndex + 1)/\(compressor.inputURLs.count)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Button("清空") { compressor.clearBatch() }
+                    .buttonStyle(.borderless)
+                    .font(.caption)
+                    .disabled(compressor.isBatchCompressing)
+            }
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(Array(compressor.inputURLs.enumerated()), id: \.offset) { idx, url in
+                        HStack {
+                            Image(systemName: "doc.text.fill")
+                                .foregroundStyle(.red)
+                                .font(.caption)
+                            Text(url.lastPathComponent)
+                                .font(.caption)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Spacer()
+                            if idx < compressor.batchResults.count {
+                                let r = compressor.batchResults[idx]
+                                if r.success {
+                                    Text(r.compressionRatio)
+                                        .font(.caption2)
+                                        .foregroundStyle(.green)
+                                } else {
+                                    Text("失败")
+                                        .font(.caption2)
+                                        .foregroundStyle(.red)
+                                }
+                            } else if compressor.isBatchCompressing && idx == compressor.currentBatchIndex {
+                                ProgressView()
+                                    .controlSize(.mini)
+                            }
+                            Button(role: .destructive) {
+                                compressor.inputURLs.remove(at: idx)
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.borderless)
+                            .disabled(compressor.isBatchCompressing)
+                        }
+                    }
+                }
+            }
+            .frame(height: min(CGFloat(compressor.inputURLs.count) * 24 + 10, 150))
+        }
+        .padding(12)
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
     // MARK: - Bottom Bar
 
     private var bottomBar: some View {
         VStack(spacing: 0) {
-            // 进度条
-            if compressor.isCompressing || compressor.isInstalling {
-                ProgressView(value: compressor.isInstalling ? .none : compressor.progress) {
-                    Text(compressor.statusText)
-                        .font(.caption)
-                }
-                .padding(.bottom, 12)
+        // 进度条
+        if compressor.isCompressing || compressor.isInstalling || compressor.isBatchCompressing {
+            ProgressView(value: compressor.isInstalling ? .none : (compressor.isBatchCompressing ? compressor.batchProgress : compressor.progress)) {
+                Text(compressor.statusText)
+                    .font(.caption)
             }
+            .padding(.bottom, 12)
+        }
 
             // 结果
             if let result = compressor.result {
@@ -262,20 +383,30 @@ struct ContentView: View {
 
             // 操作按钮
             HStack(spacing: 12) {
-                if compressor.inputURL != nil {
-                    Button("清除") {
-                        withAnimation { compressor.reset() }
-                    }
-                    .buttonStyle(.borderless)
+                // 批量模式
+                if !compressor.inputURLs.isEmpty {
+                    Button("清空队列") { compressor.clearBatch() }
+                        .buttonStyle(.borderless)
+                        .disabled(compressor.isBatchCompressing)
 
                     Spacer()
 
-                    Button("开始压缩") {
-                        compressor.compress()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(compressor.isCompressing || !compressor.missingTools.isEmpty)
-                    .keyboardShortcut(.return)
+                    Button("压缩全部") { compressor.compressBatch() }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(compressor.isBatchCompressing || !compressor.missingTools.isEmpty)
+                        .keyboardShortcut(.return)
+                }
+                // 单文件模式
+                else if compressor.inputURL != nil {
+                    Button("清除") { withAnimation { compressor.reset() } }
+                        .buttonStyle(.borderless)
+
+                    Spacer()
+
+                    Button("开始压缩") { compressor.compress() }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(compressor.isCompressing || !compressor.missingTools.isEmpty)
+                        .keyboardShortcut(.return)
                 }
             }
         }
