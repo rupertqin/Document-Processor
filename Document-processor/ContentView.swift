@@ -268,6 +268,7 @@ struct ContentView: View {
                         .font(.caption)
                     Toggle("qpdf 线性化", isOn: $compressor.useQPDF)
                         .font(.caption)
+                        .help("优化 PDF 流式加载，加快首屏打开速度，不减小体积")
                     Toggle("强制 JPEG 重编码", isOn: $compressor.forceJPEG)
                         .font(.caption)
                         .help("强制将图片以 JPEG 重新编码，否则由 Ghostscript 智能选择编码方式")

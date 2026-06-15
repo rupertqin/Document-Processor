@@ -299,6 +299,34 @@ class PDFCompressor: ObservableObject {
                 try? FileManager.default.removeItem(at: self.tempDir)
                 try FileManager.default.createDirectory(at: self.tempDir, withIntermediateDirectories: true)
 
+                // 先将原文件复制到临时目录，后续操作全部在临时目录内进行，绝不移动/删除原文件
+                let workingInput = self.tempDir.appendingPathComponent("working_input.pdf")
+                try FileManager.default.copyItem(at: input, to: workingInput)
+                var currentInput = workingInput
+
+                // Step 1: qpdf 前置修复与解密 — 消除隐藏加密、修复结构错误，给 GS 一个干净的输入
+                if shouldUseQPDF {
+                    await self.updateProgress(0.05, "正在修复与解密（qpdf）…")
+                    let sanitized = self.tempDir.appendingPathComponent("sanitized.pdf")
+                    let qpdfPath = try await self.findExecutable("qpdf", path: envPATH)
+
+                    let sanitizeResult = try await self.runProcessWithOutput(
+                        executable: qpdfPath,
+                        arguments: ["--decrypt", currentInput.path, sanitized.path],
+                        path: envPATH
+                    )
+                    if !sanitizeResult.stderr.isEmpty {
+                        print("[qpdf --decrypt stderr] \(sanitizeResult.stderr)")
+                    }
+                    if FileManager.default.fileExists(atPath: sanitized.path) {
+                        currentInput = sanitized
+                        print("[qpdf --decrypt] 修复完成，使用 sanitized 作为后续输入")
+                    } else {
+                        print("[qpdf --decrypt] 未生成输出，使用原始输入继续")
+                    }
+                }
+
+                // Step 2: Ghostscript 压缩
                 let gsOutput = self.tempDir.appendingPathComponent("gs_output.pdf")
 
                 if shouldUseGS {
@@ -307,7 +335,7 @@ class PDFCompressor: ObservableObject {
 
                     let gsResult = try await self.runProcessWithProgress(
                         executable: gsPath,
-                        arguments: self.gsArgs(input: input, output: gsOutput, resolution: resolution, forceJPEG: shouldForceJPEG, jpegQuality: shouldJpegQuality),
+                        arguments: self.gsArgs(input: currentInput, output: gsOutput, resolution: resolution, forceJPEG: shouldForceJPEG, jpegQuality: shouldJpegQuality),
                         path: envPATH,
                         progressParser: PDFCompressor.gsProgressParser(totalPages: 0)
                     )
@@ -326,19 +354,21 @@ class PDFCompressor: ObservableObject {
                     }
 
                     print("[gs] 输入: \(inputSize) bytes → 输出: \(gsSize) bytes")
+                    currentInput = gsOutput
                     await self.updateProgress(0.6, "gs 完成，正在线性化（qpdf）…")
                 } else {
-                    try FileManager.default.copyItem(at: input, to: gsOutput)
+                    // 不用 GS 时，currentInput 保持不变（可能是 sanitized.pdf 或原始 input）
                     await self.updateProgress(0.6, "正在线性化（qpdf）…")
                 }
 
+                // Step 3: qpdf 线性化（优化流式加载）
                 if shouldUseQPDF {
                     let qpdfOutput = self.tempDir.appendingPathComponent("qpdf_output.pdf")
                     let qpdfPath = try await self.findExecutable("qpdf", path: envPATH)
 
                     let qpdfResult = try await self.runProcessWithOutput(
                         executable: qpdfPath,
-                        arguments: ["--linearize", gsOutput.path, qpdfOutput.path],
+                        arguments: ["--linearize", currentInput.path, qpdfOutput.path],
                         path: envPATH
                     )
 
@@ -350,7 +380,7 @@ class PDFCompressor: ObservableObject {
                         throw CompressError.processFailed("qpdf 未生成输出文件。stderr: \(qpdfResult.stderr)")
                     }
 
-                    try FileManager.default.removeItem(at: gsOutput)
+                    try? FileManager.default.removeItem(at: gsOutput)
                     await self.updateProgress(0.9, "写入结果…")
 
                     if FileManager.default.fileExists(atPath: outputURL.path) {
@@ -362,7 +392,7 @@ class PDFCompressor: ObservableObject {
                     if FileManager.default.fileExists(atPath: outputURL.path) {
                         try FileManager.default.removeItem(at: outputURL)
                     }
-                    try FileManager.default.moveItem(at: gsOutput, to: outputURL)
+                    try FileManager.default.moveItem(at: currentInput, to: outputURL)
                 }
 
                 try? FileManager.default.removeItem(at: self.tempDir)
@@ -706,15 +736,35 @@ class PDFCompressor: ObservableObject {
                 try? FileManager.default.removeItem(at: tempDir)
                 try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
+                // 先将原文件复制到临时目录，绝不移动/删除原文件
+                let workingInput = tempDir.appendingPathComponent("working_input.pdf")
+                try FileManager.default.copyItem(at: input, to: workingInput)
+                var currentInput = workingInput
+
+                // Step 1: qpdf 前置修复与解密
+                if shouldUseQPDF {
+                    await MainActor.run { self.statusText = "批量压缩中 (\(idx+1)/\(self.inputURLs.count)) 修复解密…" }
+                    let sanitized = tempDir.appendingPathComponent("sanitized.pdf")
+                    let qpdfPath = try await findExecutable("qpdf", path: envPATH)
+                    _ = try await runProcessWithOutput(
+                        executable: qpdfPath,
+                        arguments: ["--decrypt", currentInput.path, sanitized.path],
+                        path: envPATH
+                    )
+                    if FileManager.default.fileExists(atPath: sanitized.path) {
+                        currentInput = sanitized
+                    }
+                }
+
+                // Step 2: GS 压缩
                 let gsOutput = tempDir.appendingPathComponent("gs_output.pdf")
-                let qpdfOutput = tempDir.appendingPathComponent("qpdf_output.pdf")
 
                 if shouldUseGS {
                     await MainActor.run { self.statusText = "批量压缩中 (\(idx+1)/\(self.inputURLs.count)) gs…" }
                     let gsPath = try await findExecutable("gs", path: envPATH)
                     _ = try await runProcessWithProgress(
                         executable: gsPath,
-                        arguments: gsArgs(input: input, output: gsOutput, resolution: resolution, forceJPEG: shouldForceJPEG, jpegQuality: shouldJpegQuality),
+                        arguments: gsArgs(input: currentInput, output: gsOutput, resolution: resolution, forceJPEG: shouldForceJPEG, jpegQuality: shouldJpegQuality),
                         path: envPATH,
                         progressParser: PDFCompressor.gsProgressParser(totalPages: 0)
                     )
@@ -722,17 +772,18 @@ class PDFCompressor: ObservableObject {
                           (try? FileManager.default.attributesOfItem(atPath: gsOutput.path)[.size] as? UInt64) ?? 0 > 0 else {
                         throw CompressError.processFailed("gs 未生成有效输出")
                     }
-                } else {
-                    try FileManager.default.copyItem(at: input, to: gsOutput)
+                    currentInput = gsOutput
                 }
 
+                // Step 3: qpdf 线性化
                 let finalOutput: URL
                 if shouldUseQPDF {
                     await MainActor.run { self.statusText = "批量压缩中 (\(idx+1)/\(self.inputURLs.count)) qpdf…" }
+                    let qpdfOutput = tempDir.appendingPathComponent("qpdf_output.pdf")
                     let qpdfPath = try await findExecutable("qpdf", path: envPATH)
                     _ = try await runProcessWithProgress(
                         executable: qpdfPath,
-                        arguments: ["--linearize", gsOutput.path, qpdfOutput.path],
+                        arguments: ["--linearize", currentInput.path, qpdfOutput.path],
                         path: envPATH
                     )
                     guard FileManager.default.fileExists(atPath: qpdfOutput.path) else {
@@ -740,7 +791,7 @@ class PDFCompressor: ObservableObject {
                     }
                     finalOutput = qpdfOutput
                 } else {
-                    finalOutput = gsOutput
+                    finalOutput = currentInput
                 }
 
                 // 写入结果（含防劣化保护）
