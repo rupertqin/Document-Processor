@@ -242,20 +242,22 @@ struct ContentView: View {
                         .frame(width: 180)
                 }
 
-                // JPEG 质量（仅 forceJPEG 时显示）
-                if compressor.forceJPEG {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("JPEG 质量: \(Int(compressor.jpegQuality))%")
-                            .font(.caption)
-                        Slider(value: $compressor.jpegQuality, in: 1...100, step: 1)
-                            .frame(width: 140)
-                        if compressor.jpegQuality > 60 {
-                            Text("质量过高可能导致已压缩图片反而变大")
-                                .font(.caption2)
-                                .foregroundStyle(.orange)
-                        }
+                // JPEG 质量
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("JPEG 质量: \(Int(compressor.jpegQuality))%")
+                        .font(.caption)
+                    Slider(value: $compressor.jpegQuality, in: 1...100, step: 1)
+                        .frame(width: 140)
+                        .disabled(!compressor.forceJPEG)
+                    if !compressor.forceJPEG && compressor.useGS {
+                        Text("需开启「强制 JPEG 重编码」才生效")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    } else if compressor.jpegQuality > 60 {
+                        Text("质量过高可能导致已压缩图片反而变大")
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
                     }
-                    .transition(.opacity.combined(with: .move(edge: .leading)))
                 }
 
                 Spacer()
