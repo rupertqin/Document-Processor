@@ -13,6 +13,7 @@ enum CompressionPreset: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     
     /// 应用到 PDFCompressor 的参数
+    @MainActor
     func apply(to compressor: PDFCompressor) {
         switch self {
         case .low:
@@ -39,6 +40,7 @@ enum CompressionPreset: String, CaseIterable, Identifiable {
     }
     
     /// 判断给定的压缩机参数是否匹配当前预设
+    @MainActor
     func matches(_ compressor: PDFCompressor) -> Bool {
         switch self {
         case .low:
@@ -410,13 +412,13 @@ class PDFCompressor: ObservableObject {
             let errHandle = errPipe.fileHandleForReading
             let outHandle = outPipe.fileHandleForReading
 
-            var stderrLines = ""
+            var stderrLines = StderrBuffer()
 
             // 实时读取 stderr
             errHandle.readabilityHandler = { handle in
                 let data = handle.availableData
                 guard !data.isEmpty, let chunk = String(data: data, encoding: .utf8) else { return }
-                stderrLines += chunk
+                stderrLines.append(chunk)
                 if let parser = progressParser {
                     for line in chunk.components(separatedBy: "\n") where !line.isEmpty {
                         if let (prog, text) = parser(line) {
@@ -437,10 +439,10 @@ class PDFCompressor: ObservableObject {
                 let stdout = String(data: outData, encoding: .utf8) ?? ""
 
                 if proc.terminationStatus == 0 {
-                    continuation.resume(returning: ProcessResult(stdout: stdout, stderr: stderrLines))
+                    continuation.resume(returning: ProcessResult(stdout: stdout, stderr: stderrLines.value))
                 } else {
                     continuation.resume(throwing: CompressError.processFailed(
-                        "\(executable.lastPathComponent) 退出码: \(proc.terminationStatus)\n\(stderrLines)"
+                        "\(executable.lastPathComponent) 退出码: \(proc.terminationStatus)\n\(stderrLines.value)"
                     ))
                 }
             }
@@ -812,5 +814,24 @@ enum CompressError: LocalizedError {
         case .notFound(let msg): return msg
         case .processFailed(let msg): return msg
         }
+    }
+}
+
+/// Thread-safe stderr accumulator for Process callbacks
+private final class StderrBuffer: @unchecked Sendable {
+    private var content = ""
+    private let lock = NSLock()
+
+    func append(_ string: String) {
+        lock.lock()
+        content += string
+        lock.unlock()
+    }
+
+    var value: String {
+        lock.lock()
+        let result = content
+        lock.unlock()
+        return result
     }
 }
