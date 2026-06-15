@@ -557,7 +557,7 @@ class PDFCompressor: ObservableObject {
 
     // MARK: - Ghostscript args
 
-    private func gsArgs(input: URL, output: URL, resolution: Int, forceJPEG: Bool, jpegQuality: Int) -> [String] {
+    nonisolated func gsArgs(input: URL, output: URL, resolution: Int, forceJPEG: Bool, jpegQuality: Int) -> [String] {
         var args = [
             "-sDEVICE=pdfwrite",
             "-dCompatibilityLevel=1.4",
