@@ -121,8 +121,12 @@ final class PDFCompressorTests: XCTestCase {
         XCTAssertEqual(compressor.gsQFactor(75), 0.5, accuracy: 0.01)
         // quality 90 → 0.2 (200-180)/100
         XCTAssertEqual(compressor.gsQFactor(90), 0.2, accuracy: 0.01)
-        // quality 99 → 0.02 (200-198)/100
-        XCTAssertEqual(compressor.gsQFactor(99), 0.02, accuracy: 0.01)
+        // quality 94 → 0.12 (200-188)/100
+        XCTAssertEqual(compressor.gsQFactor(94), 0.12, accuracy: 0.01)
+        // quality 95 → 0.1 (200-190)/100 = 0.1, 恰好等于下限
+        XCTAssertEqual(compressor.gsQFactor(95), 0.1, accuracy: 0.01)
+        // quality 99 → raw 0.02 被 max(0.1, ...) clamp 到 0.1
+        XCTAssertEqual(compressor.gsQFactor(99), 0.1, accuracy: 0.01)
     }
 
     @MainActor
@@ -151,15 +155,17 @@ final class PDFCompressorTests: XCTestCase {
     }
 
     @MainActor
-    func testGsQFactorMonotonicallyDecreasing() {
+    func testGsQFactorMonotonicallyNonIncreasing() {
         let compressor = PDFCompressor()
-        // QFactor 应随 quality 单调递减
+        // QFactor 应随 quality 单调不递增（0.1 下限 clamp 导致 quality ≥ 95 后值相同）
         var prev = compressor.gsQFactor(1)
         for q in 2...100 {
             let current = compressor.gsQFactor(q)
-            XCTAssertLessThanOrEqual(current, prev + 0.001, "QFactor not decreasing at quality=\(q)")
+            XCTAssertLessThanOrEqual(current, prev + 0.001, "QFactor not non-increasing at quality=\(q)")
             prev = current
         }
+        // 最终值应等于下限 0.1
+        XCTAssertEqual(prev, 0.1, accuracy: 0.01)
     }
 
     // MARK: - gsProgressParser Tests
