@@ -80,20 +80,24 @@ brew install ghostscript qpdf
 
 ```
 Document-Processor/
-├── Package.swift                     # SPM 包定义
+├── Package.swift                          # SPM 包定义
+├── project.yml                            # XcodeGen 项目配置
+├── Packaging/
+│   └── DocumentProcessor-Info.plist       # App Info.plist
 ├── Sources/
 │   └── DocumentProcessor/
-│       ├── App.swift                 # 应用入口（@main）
-│       ├── ContentView.swift         # 主界面（SwiftUI）
-│       ├── PDFCompressor.swift       # 核心压缩逻辑
+│       ├── App.swift                      # 应用入口（@main）
+│       ├── ContentView.swift              # 主界面（SwiftUI）
+│       ├── PDFCompressor.swift            # 核心压缩逻辑
 │       └── Resources/
-│           └── Assets.xcassets/      # 图标资源
+│           ├── Assets.xcassets/           # 图标资源
+│           └── Document-processor.entitlements
 ├── Tests/
 │   └── DocumentProcessorTests/
-│       └── PDFCompressorTests.swift  # 单元测试（57 个用例）
+│       └── PDFCompressorTests.swift       # 单元测试（57 个用例）
 ├── .github/workflows/
-│   └── swift.yml                     # CI: swift build + swift test
-└── generate_icon.py                  # 图标生成脚本
+│   └── swift.yml                          # CI: swift build + swift test
+└── generate_icon.py                       # 图标生成脚本
 ```
 
 ## 开发
@@ -103,8 +107,21 @@ Document-Processor/
 - macOS 15.0+
 - Xcode 16+
 - Swift 6.0+
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen)（`brew install xcodegen`）
 
 ### 构建与运行
+
+**Xcode（推荐）**：
+
+```bash
+# 生成 Xcode 项目（首次或修改 project.yml 后）
+xcodegen generate
+
+# 打开项目
+open Document-processor.xcodeproj
+
+# ⌘R 运行 / ⌘B 构建
+```
 
 **命令行（SPM）**：
 
@@ -113,7 +130,7 @@ swift build
 swift run
 ```
 
-**Xcode**：`open Package.swift`，然后 `⌘R` 运行
+> ⚠️ SPM 方式生成的是裸二进制，缺少 `.app` bundle 和 Info.plist，运行时会有警告。日常开发推荐使用 XcodeGen 方式。
 
 ### 运行测试
 
@@ -128,6 +145,16 @@ swift test
 ### CI
 
 推送到 `main` 分支或创建 PR 时，GitHub Actions 自动执行 `swift build` + `swift test`。
+
+### 修改项目配置
+
+编辑 `project.yml` 后重新生成：
+
+```bash
+xcodegen generate
+```
+
+`.xcodeproj` 已加入 `.gitignore`，始终由 `project.yml` 生成。
 
 ## 技术细节
 

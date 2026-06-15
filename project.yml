@@ -33,8 +33,6 @@ targets:
           CODE_SIGN_IDENTITY: "-"
         release:
           CODE_SIGN_IDENTITY: "-"
-    entitlements:
-      path: Sources/DocumentProcessor/Resources/Document-processor.entitlements
 
   DocumentProcessorTests:
     type: bundle.unit-test
