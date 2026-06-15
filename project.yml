@@ -1,0 +1,55 @@
+name: Document-processor
+options:
+  bundleIdPrefix: com
+  deploymentTarget:
+    macOS: "15.0"
+  xcodeVersion: "16.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "15.0"
+
+targets:
+  DocumentProcessor:
+    type: application
+    platform: macOS
+    sources:
+      - Sources/DocumentProcessor
+    info:
+      path: Packaging/DocumentProcessor-Info.plist
+    entitlements:
+      path: Sources/DocumentProcessor/Resources/Document-processor.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.document-processor.app
+        PRODUCT_NAME: DocumentProcessor
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        SWIFT_EMIT_LOC_STRINGS: "YES"
+        CODE_SIGN_STYLE: Automatic
+      configs:
+        debug:
+          CODE_SIGN_IDENTITY: "-"
+        release:
+          CODE_SIGN_IDENTITY: "-"
+    entitlements:
+      path: Sources/DocumentProcessor/Resources/Document-processor.entitlements
+
+  DocumentProcessorTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - Tests/DocumentProcessorTests
+    dependencies:
+      - target: DocumentProcessor
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.document-processor.app.tests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic
+      configs:
+        debug:
+          CODE_SIGN_IDENTITY: "-"
+        release:
+          CODE_SIGN_IDENTITY: "-"

@@ -1,5 +1,5 @@
 import XCTest
-@testable import Document_processor
+@testable import DocumentProcessor
 
 final class PDFCompressorTests: XCTestCase {
 

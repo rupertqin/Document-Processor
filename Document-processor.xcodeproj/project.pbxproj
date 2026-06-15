@@ -6,272 +6,209 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		158BC150A929EECC35BFEE62 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12BF305EF7912A66BB1CFC03 /* ContentView.swift */; };
+		56F67F30183D9F9E9C8BDAC9 /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A3156D0597611A95A1FEE6B /* App.swift */; };
+		6210A1B80961E103CC04DD0D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7474CA2A2DC8DF928BBBCA0E /* Assets.xcassets */; };
+		64DE0B2C211EFF3673B5400D /* PDFCompressorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D803E7BC9B4D53B46336358 /* PDFCompressorTests.swift */; };
+		86570A35FF2B2157B4026823 /* PDFCompressor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 147EF78476B0788DA5D51963 /* PDFCompressor.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
-		9A88C7352FDF0FEB00CBE4FA /* PBXContainerItemProxy */ = {
+		BC0D212701EC978D943B52FB /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 9A88C7162FDF0FEA00CBE4FA /* Project object */;
+			containerPortal = C53181A385A1C5C513FA8023 /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = 9A88C71D2FDF0FEA00CBE4FA;
-			remoteInfo = "Document-processor";
+			remoteGlobalIDString = EB1350F8AD8B8E6C7B0A866D;
+			remoteInfo = DocumentProcessor;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		9A88C71E2FDF0FEA00CBE4FA /* Document-processor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Document-processor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		9A88C7332FDF0FEB00CBE4FA /* Document-processorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Document-processorTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0A3156D0597611A95A1FEE6B /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
+		12BF305EF7912A66BB1CFC03 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		147EF78476B0788DA5D51963 /* PDFCompressor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFCompressor.swift; sourceTree = "<group>"; };
+		7474CA2A2DC8DF928BBBCA0E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		9D803E7BC9B4D53B46336358 /* PDFCompressorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFCompressorTests.swift; sourceTree = "<group>"; };
+		BF9A2DBB18CF93D34ABA07F5 /* DocumentProcessorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DocumentProcessorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D56D735B9813620A281A1C90 /* DocumentProcessor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DocumentProcessor.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F8A1662207C4F4B15D02381B /* Document-processor.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Document-processor.entitlements"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		9A88C7202FDF0FEA00CBE4FA /* Document-processor */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Document-processor";
-			sourceTree = "<group>";
-		};
-		9A88C7342FDF0FEB00CBE4FA /* Document-processorTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Document-processorTests";
-			sourceTree = "<group>";
-		};
-/* End PBXFileSystemSynchronizedRootGroup section */
-
-/* Begin PBXFrameworksBuildPhase section */
-		9A88C71B2FDF0FEA00CBE4FA /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		9A88C7312FDF0FEB00CBE4FA /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXFrameworksBuildPhase section */
-
 /* Begin PBXGroup section */
-		9A88C7152FDF0FEA00CBE4FA = {
+		7A456D534A322ABE4C9CCBA1 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				9A88C7202FDF0FEA00CBE4FA /* Document-processor */,
-				9A88C7342FDF0FEB00CBE4FA /* Document-processorTests */,
-				9A88C71F2FDF0FEA00CBE4FA /* Products */,
+				7474CA2A2DC8DF928BBBCA0E /* Assets.xcassets */,
+				F8A1662207C4F4B15D02381B /* Document-processor.entitlements */,
 			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
-		9A88C71F2FDF0FEA00CBE4FA /* Products */ = {
+		80A35450FCED43FDCC1A5A7C /* DocumentProcessor */ = {
 			isa = PBXGroup;
 			children = (
-				9A88C71E2FDF0FEA00CBE4FA /* Document-processor.app */,
-				9A88C7332FDF0FEB00CBE4FA /* Document-processorTests.xctest */,
+				0A3156D0597611A95A1FEE6B /* App.swift */,
+				12BF305EF7912A66BB1CFC03 /* ContentView.swift */,
+				147EF78476B0788DA5D51963 /* PDFCompressor.swift */,
+				7A456D534A322ABE4C9CCBA1 /* Resources */,
+			);
+			name = DocumentProcessor;
+			path = Sources/DocumentProcessor;
+			sourceTree = "<group>";
+		};
+		8133753A8BA958EDD8465FFF /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D56D735B9813620A281A1C90 /* DocumentProcessor.app */,
+				BF9A2DBB18CF93D34ABA07F5 /* DocumentProcessorTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		8AF0614B18B008B3AFFBADCA = {
+			isa = PBXGroup;
+			children = (
+				80A35450FCED43FDCC1A5A7C /* DocumentProcessor */,
+				90FD3149FA150EE71C4983B1 /* DocumentProcessorTests */,
+				8133753A8BA958EDD8465FFF /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		90FD3149FA150EE71C4983B1 /* DocumentProcessorTests */ = {
+			isa = PBXGroup;
+			children = (
+				9D803E7BC9B4D53B46336358 /* PDFCompressorTests.swift */,
+			);
+			name = DocumentProcessorTests;
+			path = Tests/DocumentProcessorTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		9A88C71D2FDF0FEA00CBE4FA /* Document-processor */ = {
+		0CA4C0A2F1A52FBBBCF9AC57 /* DocumentProcessorTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 9A88C7292FDF0FEB00CBE4FA /* Build configuration list for PBXNativeTarget "Document-processor" */;
+			buildConfigurationList = 4681DD5D048F6CCE4CC4B34B /* Build configuration list for PBXNativeTarget "DocumentProcessorTests" */;
 			buildPhases = (
-				9A88C71A2FDF0FEA00CBE4FA /* Sources */,
-				9A88C71B2FDF0FEA00CBE4FA /* Frameworks */,
-				9A88C71C2FDF0FEA00CBE4FA /* Resources */,
+				27AE0414B3EECBE40D47AFDE /* Sources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				1AF5F628C215A1F7F45A3CC3 /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				9A88C7202FDF0FEA00CBE4FA /* Document-processor */,
-			);
-			name = "Document-processor";
+			name = DocumentProcessorTests;
 			packageProductDependencies = (
 			);
-			productName = "Document-processor";
-			productReference = 9A88C71E2FDF0FEA00CBE4FA /* Document-processor.app */;
-			productType = "com.apple.product-type.application";
-		};
-		9A88C72F2FDF0FEB00CBE4FA /* Document-processorTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 9A88C72E2FDF0FEB00CBE4FA /* Build configuration list for PBXNativeTarget "Document-processorTests" */;
-			buildPhases = (
-				9A88C7302FDF0FEB00CBE4FA /* Sources */,
-				9A88C7312FDF0FEB00CBE4FA /* Frameworks */,
-				9A88C7322FDF0FEB00CBE4FA /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				9A88C7362FDF0FEB00CBE4FA /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				9A88C7342FDF0FEB00CBE4FA /* Document-processorTests */,
-			);
-			name = "Document-processorTests";
-			packageProductDependencies = (
-			);
-			productName = "Document-processorTests";
-			productReference = 9A88C7332FDF0FEB00CBE4FA /* Document-processorTests.xctest */;
+			productName = DocumentProcessorTests;
+			productReference = BF9A2DBB18CF93D34ABA07F5 /* DocumentProcessorTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		EB1350F8AD8B8E6C7B0A866D /* DocumentProcessor */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1B6C4761011ABC96C619DFEA /* Build configuration list for PBXNativeTarget "DocumentProcessor" */;
+			buildPhases = (
+				BDA4E316E343D2D64591C8EB /* Sources */,
+				452AD3E227D885C51EE458BA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = DocumentProcessor;
+			packageProductDependencies = (
+			);
+			productName = DocumentProcessor;
+			productReference = D56D735B9813620A281A1C90 /* DocumentProcessor.app */;
+			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		9A88C7162FDF0FEA00CBE4FA /* Project object */ = {
+		C53181A385A1C5C513FA8023 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2650;
-				LastUpgradeCheck = 2650;
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
 				TargetAttributes = {
-					9A88C71D2FDF0FEA00CBE4FA = {
-						CreatedOnToolsVersion = 26.5;
+					0CA4C0A2F1A52FBBBCF9AC57 = {
+						ProvisioningStyle = Automatic;
 					};
-					9A88C72F2FDF0FEB00CBE4FA = {
-						CreatedOnToolsVersion = 16.2;
-						TestTargetID = 9A88C71D2FDF0FEA00CBE4FA;
+					EB1350F8AD8B8E6C7B0A866D = {
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
-			buildConfigurationList = 9A88C7192FDF0FEA00CBE4FA /* Build configuration list for PBXProject "Document-processor" */;
+			buildConfigurationList = 8963580416B83AE2D7DEA6AE /* Build configuration list for PBXProject "Document-processor" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
-				en,
 				Base,
+				en,
 			);
-			mainGroup = 9A88C7152FDF0FEA00CBE4FA;
+			mainGroup = 8AF0614B18B008B3AFFBADCA;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 9A88C71F2FDF0FEA00CBE4FA /* Products */;
+			productRefGroup = 8133753A8BA958EDD8465FFF /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				9A88C71D2FDF0FEA00CBE4FA /* Document-processor */,
-				9A88C72F2FDF0FEB00CBE4FA /* Document-processorTests */,
+				EB1350F8AD8B8E6C7B0A866D /* DocumentProcessor */,
+				0CA4C0A2F1A52FBBBCF9AC57 /* DocumentProcessorTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		9A88C71C2FDF0FEA00CBE4FA /* Resources */ = {
+		452AD3E227D885C51EE458BA /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		9A88C7322FDF0FEB00CBE4FA /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
+				6210A1B80961E103CC04DD0D /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		9A88C71A2FDF0FEA00CBE4FA /* Sources */ = {
+		27AE0414B3EECBE40D47AFDE /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				64DE0B2C211EFF3673B5400D /* PDFCompressorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		9A88C7302FDF0FEB00CBE4FA /* Sources */ = {
+		BDA4E316E343D2D64591C8EB /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				56F67F30183D9F9E9C8BDAC9 /* App.swift in Sources */,
+				158BC150A929EECC35BFEE62 /* ContentView.swift in Sources */,
+				86570A35FF2B2157B4026823 /* PDFCompressor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		9A88C7362FDF0FEB00CBE4FA /* PBXTargetDependency */ = {
+		1AF5F628C215A1F7F45A3CC3 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 9A88C71D2FDF0FEA00CBE4FA /* Document-processor */;
-			targetProxy = 9A88C7352FDF0FEB00CBE4FA /* PBXContainerItemProxy */;
+			target = EB1350F8AD8B8E6C7B0A866D /* DocumentProcessor */;
+			targetProxy = BC0D212701EC978D943B52FB /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		9A88C7272FDF0FEB00CBE4FA /* Debug */ = {
+		12719420AD0C4D2C3D62F7D3 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = XLRSS856WW;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-				MTL_FAST_MATH = YES;
-				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = macosx;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-			};
-			name = Debug;
-		};
-		9A88C7282FDF0FEB00CBE4FA /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
@@ -299,11 +236,9 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = XLRSS856WW;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -311,146 +246,189 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};
-		9A88C72A2FDF0FEB00CBE4FA /* Debug */ = {
+		141957D2EC7298023F558F57 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		62C013DC14F8107928EA0E7A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "Document-processor/Document-processor.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "Sources/DocumentProcessor/Resources/Document-processor.entitlements";
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = XLRSS856WW;
-				ENABLE_APP_SANDBOX = NO;
-				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_FILE = "Packaging/DocumentProcessor-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "Gantz.Document-processor";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.document-processor.app";
+				PRODUCT_NAME = DocumentProcessor;
+				SDKROOT = macosx;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
-		9A88C72B2FDF0FEB00CBE4FA /* Release */ = {
+		713704DCEF760051B5B2C8B9 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "Document-processor/Document-processor.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "Sources/DocumentProcessor/Resources/Document-processor.entitlements";
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = XLRSS856WW;
-				ENABLE_APP_SANDBOX = NO;
-				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_FILE = "Packaging/DocumentProcessor-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "Gantz.Document-processor";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.document-processor.app";
+				PRODUCT_NAME = DocumentProcessor;
+				SDKROOT = macosx;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};
-		9A88C72C2FDF0FEB00CBE4FA /* Debug */ = {
+		B03477A3E2BA4719619DD85A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = XLRSS856WW;
+				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "Gantz.Document-processorTests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Document-processor.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Document-processor";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.document-processor.app.tests";
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DocumentProcessor.app/Contents/MacOS/DocumentProcessor";
+			};
+			name = Release;
+		};
+		BB629F35C165B16FE80F13AD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.document-processor.app.tests";
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DocumentProcessor.app/Contents/MacOS/DocumentProcessor";
 			};
 			name = Debug;
-		};
-		9A88C72D2FDF0FEB00CBE4FA /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = XLRSS856WW;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "Gantz.Document-processorTests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Document-processor.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Document-processor";
-			};
-			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		9A88C7192FDF0FEA00CBE4FA /* Build configuration list for PBXProject "Document-processor" */ = {
+		1B6C4761011ABC96C619DFEA /* Build configuration list for PBXNativeTarget "DocumentProcessor" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				9A88C7272FDF0FEB00CBE4FA /* Debug */,
-				9A88C7282FDF0FEB00CBE4FA /* Release */,
+				62C013DC14F8107928EA0E7A /* Debug */,
+				713704DCEF760051B5B2C8B9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
-		9A88C7292FDF0FEB00CBE4FA /* Build configuration list for PBXNativeTarget "Document-processor" */ = {
+		4681DD5D048F6CCE4CC4B34B /* Build configuration list for PBXNativeTarget "DocumentProcessorTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				9A88C72A2FDF0FEB00CBE4FA /* Debug */,
-				9A88C72B2FDF0FEB00CBE4FA /* Release */,
+				BB629F35C165B16FE80F13AD /* Debug */,
+				B03477A3E2BA4719619DD85A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
-		9A88C72E2FDF0FEB00CBE4FA /* Build configuration list for PBXNativeTarget "Document-processorTests" */ = {
+		8963580416B83AE2D7DEA6AE /* Build configuration list for PBXProject "Document-processor" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				9A88C72C2FDF0FEB00CBE4FA /* Debug */,
-				9A88C72D2FDF0FEB00CBE4FA /* Release */,
+				141957D2EC7298023F558F57 /* Debug */,
+				12719420AD0C4D2C3D62F7D3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 9A88C7162FDF0FEA00CBE4FA /* Project object */;
+	rootObject = C53181A385A1C5C513FA8023 /* Project object */;
 }

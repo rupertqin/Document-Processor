@@ -1,1 +1,16 @@
+# SPM build artifacts
+.build/
+.swiftpm/
+
+# XcodeGen-generated project (regenerate with: xcodegen generate)
+Document-processor.xcodeproj/
+
+# Xcode user-specific files
+*.xcuserstate
+xcuserdata/
+
+# macOS
+.DS_Store
+
+# Workbuddy
 .workbuddy

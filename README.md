@@ -79,16 +79,20 @@ brew install ghostscript qpdf
 ## 项目结构
 
 ```
-Document-processor/
-├── Document-processor/
-│   ├── Document_processorApp.swift   # 应用入口
-│   ├── ContentView.swift             # 主界面（SwiftUI）
-│   ├── PDFCompressor.swift           # 核心压缩逻辑
-│   └── Assets.xcassets/              # 图标资源
-├── Document-processorTests/
-│   └── PDFCompressorTests.swift      # 单元测试（45 个用例）
+Document-Processor/
+├── Package.swift                     # SPM 包定义
+├── Sources/
+│   └── DocumentProcessor/
+│       ├── App.swift                 # 应用入口（@main）
+│       ├── ContentView.swift         # 主界面（SwiftUI）
+│       ├── PDFCompressor.swift       # 核心压缩逻辑
+│       └── Resources/
+│           └── Assets.xcassets/      # 图标资源
+├── Tests/
+│   └── DocumentProcessorTests/
+│       └── PDFCompressorTests.swift  # 单元测试（57 个用例）
 ├── .github/workflows/
-│   └── swift.yml                     # CI: 构建 + 测试
+│   └── swift.yml                     # CI: swift build + swift test
 └── generate_icon.py                  # 图标生成脚本
 ```
 
@@ -98,33 +102,32 @@ Document-processor/
 
 - macOS 15.0+
 - Xcode 16+
-- Swift 5.9+
+- Swift 6.0+
 
 ### 构建与运行
 
+**命令行（SPM）**：
+
 ```bash
-open Document-processor.xcodeproj
-# Xcode 中 ⌘R 运行
+swift build
+swift run
 ```
 
-### 运行测试
+**Xcode**：`open Package.swift`，然后 `⌘R` 运行
 
-**Xcode**：`⌘U` 或 `Product → Test`
+### 运行测试
 
 **命令行**：
 
 ```bash
-xcodebuild test \
-  -scheme "Document-processor" \
-  -destination "platform=macOS" \
-  CODE_SIGN_IDENTITY="" \
-  CODE_SIGNING_REQUIRED=NO \
-  CODE_SIGNING_ALLOWED=NO
+swift test
 ```
+
+**Xcode**：`⌘U` 或 `Product → Test`
 
 ### CI
 
-推送到 `main` 分支或创建 PR 时，GitHub Actions 自动执行构建和测试（`.github/workflows/swift.yml`）。
+推送到 `main` 分支或创建 PR 时，GitHub Actions 自动执行 `swift build` + `swift test`。
 
 ## 技术细节
 
@@ -134,8 +137,10 @@ xcodebuild test \
 
 ### 线程安全
 
-`stderrLines` 使用 `StderrBuffer`（`NSLock` 保护的线程安全缓冲区），避免 Process 回调中的数据竞争。
+- `StderrBuffer` — `NSLock` 保护的线程安全缓冲区，用于 Process 回调中的 stderr 累积
+- `ProgressParserState` — `@unchecked Sendable` 类，用于 `gsProgressParser` 闭包中的可变状态
+- `_sizeFormatter` — `ByteCountFormatter` 扩展为 `@unchecked Sendable`，用于 `nonisolated` 的 `formattedSize`
 
 ### Swift 并发
 
-项目启用 `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`，所有访问 `@Published` 属性的方法均标注 `@MainActor`。纯计算方法（`gsQFactor`、`formattedSize`、`gsProgressParser`）标注 `nonisolated`。
+项目使用 Swift 6 严格并发模式。所有访问 `@Published` 属性的方法均标注 `@MainActor`，纯计算方法（`gsQFactor`、`formattedSize`、`gsProgressParser`）标注 `nonisolated`。`gsProgressParser` 返回 `@Sendable` 闭包。

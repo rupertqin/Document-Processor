@@ -426,7 +426,7 @@ class PDFCompressor: ObservableObject {
         executable: URL,
         arguments: [String],
         path: String,
-        progressParser: ((String) -> (Double, String)?)? = nil
+        progressParser: (@Sendable (String) -> (Double, String)?)? = nil
     ) async throws -> ProcessResult {
         try await withCheckedThrowingContinuation { continuation in
             let process = Process()
@@ -442,7 +442,7 @@ class PDFCompressor: ObservableObject {
             let errHandle = errPipe.fileHandleForReading
             let outHandle = outPipe.fileHandleForReading
 
-            var stderrLines = StderrBuffer()
+            let stderrLines = StderrBuffer()
 
             // 实时读取 stderr
             errHandle.readabilityHandler = { handle in
@@ -492,9 +492,9 @@ class PDFCompressor: ObservableObject {
 
     /// Ghostscript stderr 进度解析器
     /// 解析 "Processing pages 1 through N" 获取总页数，解析 "Page M" 获取当前进度
-    nonisolated static func gsProgressParser(totalPages: Int) -> (String) -> (Double, String)? {
-        var total = totalPages
-        var current = 0
+    nonisolated static func gsProgressParser(totalPages: Int) -> @Sendable (String) -> (Double, String)? {
+        let state = ProgressParserState()
+        state.total = totalPages
         let pagesRegex = try? NSRegularExpression(pattern: "Processing pages \\d+ through (\\d+)")
         return { line in
             // 解析总页数："Processing pages 1 through 10."
@@ -502,7 +502,7 @@ class PDFCompressor: ObservableObject {
                 if let regex = pagesRegex,
                    let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
                    let range = Range(match.range(at: 1), in: line) {
-                    total = Int(line[range]) ?? total
+                    state.total = Int(line[range]) ?? state.total
                 }
                 return nil
             }
@@ -510,8 +510,10 @@ class PDFCompressor: ObservableObject {
             if line.hasPrefix("Page ") {
                 let numStr = line.dropFirst(5).trimmingCharacters(in: .whitespaces)
                 if let num = Int(numStr) {
-                    current = num
+                    state.current = num
                 }
+                let total = state.total
+                let current = state.current
                 let prog = total > 0 ? Double(current) / Double(total) : 0
                 let scaled = 0.1 + prog * 0.5  // gs 阶段占 0.1~0.6
                 return (scaled, "正在压缩（gs）… 第 \(current)/\(total) 页")
@@ -844,17 +846,20 @@ class PDFCompressor: ObservableObject {
 
     // MARK: - Helpers
 
-    private static let sizeFormatter: ByteCountFormatter = {
-        let f = ByteCountFormatter()
-        f.countStyle = .file
-        return f
-    }()
-
     nonisolated func formattedSize(_ bytes: UInt64?) -> String {
         guard let bytes = bytes, bytes > 0 else { return "未知" }
-        return Self.sizeFormatter.string(fromByteCount: Int64(bytes))
+        return _sizeFormatter.string(fromByteCount: Int64(bytes))
     }
 }
+
+/// Thread-safe shared ByteCountFormatter (outside MainActor class)
+private let _sizeFormatter: ByteCountFormatter = {
+    let f = ByteCountFormatter()
+    f.countStyle = .file
+    return f
+}()
+
+extension ByteCountFormatter: @unchecked Sendable {}
 
 enum CompressError: LocalizedError {
     case notFound(String)
@@ -885,4 +890,10 @@ private final class StderrBuffer: @unchecked Sendable {
         lock.unlock()
         return result
     }
+}
+
+/// Thread-safe state for progress parser (captured by @Sendable closure)
+private final class ProgressParserState: @unchecked Sendable {
+    var total: Int = 0
+    var current: Int = 0
 }
