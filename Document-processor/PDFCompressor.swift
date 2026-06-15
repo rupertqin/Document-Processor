@@ -462,7 +462,7 @@ class PDFCompressor: ObservableObject {
 
     /// Ghostscript stderr 进度解析器
     /// 解析 "Processing pages 1 through N" 获取总页数，解析 "Page M" 获取当前进度
-    static func gsProgressParser(totalPages: Int) -> (String) -> (Double, String)? {
+    nonisolated static func gsProgressParser(totalPages: Int) -> (String) -> (Double, String)? {
         var total = totalPages
         var current = 0
         let pagesRegex = try? NSRegularExpression(pattern: "Processing pages \\d+ through (\\d+)")
@@ -585,7 +585,7 @@ class PDFCompressor: ObservableObject {
 
     /// JPEGQ (0-100) → Ghostscript QFactor (IJG 标准非线性映射)
     /// quality 1 → 50.0 (极低), quality 50 → 1.0 (中等), quality 100 → 0.1 (极高)
-    private func gsQFactor(_ quality: Int) -> Double {
+    nonisolated func gsQFactor(_ quality: Int) -> Double {
         let q = max(1, min(100, quality))
         let scale: Double
         if q < 50 {
@@ -799,7 +799,7 @@ class PDFCompressor: ObservableObject {
         return f
     }()
 
-    private func formattedSize(_ bytes: UInt64?) -> String {
+    nonisolated func formattedSize(_ bytes: UInt64?) -> String {
         guard let bytes = bytes, bytes > 0 else { return "未知" }
         return Self.sizeFormatter.string(fromByteCount: Int64(bytes))
     }
