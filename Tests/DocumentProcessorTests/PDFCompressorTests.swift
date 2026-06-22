@@ -314,11 +314,20 @@ final class PDFCompressorTests: XCTestCase {
     // MARK: - applyPreset / syncPresetSelection Tests
 
     @MainActor
-    func testApplyPresetSkipsCustom() {
+    func testApplyPresetCustomRestoresSavedValues() {
         let compressor = PDFCompressor()
+        // 手动修改参数并触发 syncPresetSelection 保存自定义值
         compressor.resolution = 99
+        compressor.jpegQuality = 77
+        compressor.syncPresetSelection()
+        // 切换到低质量预设
+        compressor.applyPreset(.low)
+        XCTAssertEqual(compressor.resolution, 72)
+        XCTAssertEqual(compressor.jpegQuality, 20)
+        // 切回自定义，应恢复之前保存的值
         compressor.applyPreset(.custom)
         XCTAssertEqual(compressor.resolution, 99)
+        XCTAssertEqual(compressor.jpegQuality, 77)
     }
 
     @MainActor

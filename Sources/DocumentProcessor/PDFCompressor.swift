@@ -103,11 +103,26 @@ class PDFCompressor: ObservableObject {
     /// 标记当前是否正在应用预设，防止参数 onChange 触发 syncPresetSelection 造成循环
     private var isApplyingPreset = false
 
+    /// 自定义预设的保存值，切换到 .custom 时恢复
+    private var customResolution: Double = 140
+    private var customForceJPEG: Bool = true
+    private var customJpegQuality: Double = 30
+    private var customUseGS: Bool = true
+    private var customUseQPDF: Bool = true
+
     /// 应用预设参数（由视图层 .onChange 调用）
     func applyPreset(_ preset: CompressionPreset) {
-        guard preset != .custom else { return }
         isApplyingPreset = true
-        preset.apply(to: self)
+        if preset == .custom {
+            // 恢复之前保存的自定义值
+            resolution = customResolution
+            forceJPEG = customForceJPEG
+            jpegQuality = customJpegQuality
+            useGS = customUseGS
+            useQPDF = customUseQPDF
+        } else {
+            preset.apply(to: self)
+        }
         // 延迟重置标志，确保参数的 .onChange 不会误触发 syncPresetSelection
         DispatchQueue.main.async { [weak self] in
             self?.isApplyingPreset = false
@@ -128,6 +143,17 @@ class PDFCompressor: ObservableObject {
         if selectedPreset != .custom {
             selectedPreset = .custom
         }
+        // 用户手动修改参数导致进入自定义模式时，保存当前值
+        saveCustomValues()
+    }
+
+    /// 保存当前参数为自定义预设值
+    private func saveCustomValues() {
+        customResolution = resolution
+        customForceJPEG = forceJPEG
+        customJpegQuality = jpegQuality
+        customUseGS = useGS
+        customUseQPDF = useQPDF
     }
 
     @Published var resolution: Double = 140
