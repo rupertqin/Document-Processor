@@ -571,14 +571,14 @@ final class PDFCompressorTests: XCTestCase {
             outputURL: nil, originalSize: "1 MB", finalSize: "500 KB",
             compressionRatio: "50%", success: true, message: "完成"
         )]
-        compressor.currentBatchIndex = 1
+        compressor.completedBatchCount = 1
         compressor.batchProgress = 0.5
 
         compressor.clearBatch()
 
         XCTAssertTrue(compressor.inputURLs.isEmpty)
         XCTAssertTrue(compressor.batchResults.isEmpty)
-        XCTAssertEqual(compressor.currentBatchIndex, 0)
+        XCTAssertEqual(compressor.completedBatchCount, 0)
         XCTAssertEqual(compressor.batchProgress, 0)
     }
 

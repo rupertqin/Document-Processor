@@ -81,12 +81,13 @@ class PDFCompressor: ObservableObject {
     // MARK: - Batch Compression
     
     @Published var inputURLs: [URL] = []
-    @Published var batchResults: [BatchResult] = []
+    @Published var batchResults: [BatchResult?] = []
     @Published var isBatchCompressing = false
-    @Published var currentBatchIndex: Int = 0
+    @Published var completedBatchCount: Int = 0
+    @Published var processingBatchIndices: Set<Int> = []
     @Published var batchProgress: Double = 0
     
-    struct BatchResult {
+    struct BatchResult: Sendable {
         let inputURL: URL
         let outputURL: URL?
         let originalSize: String
@@ -722,7 +723,8 @@ class PDFCompressor: ObservableObject {
     func clearBatch() {
         inputURLs.removeAll()
         batchResults.removeAll()
-        currentBatchIndex = 0
+        completedBatchCount = 0
+        processingBatchIndices.removeAll()
         batchProgress = 0
     }
 
@@ -730,9 +732,10 @@ class PDFCompressor: ObservableObject {
     func compressBatch() {
         guard !inputURLs.isEmpty, !isBatchCompressing else { return }
         isBatchCompressing = true
-        currentBatchIndex = 0
+        completedBatchCount = 0
+        processingBatchIndices.removeAll()
         batchProgress = 0
-        batchResults.removeAll()
+        batchResults = Array(repeating: nil, count: inputURLs.count)
         statusText = "准备批量压缩…"
 
         Task.detached { [weak self] in
@@ -741,132 +744,216 @@ class PDFCompressor: ObservableObject {
         }
     }
 
+    /// 批量压缩主逻辑 — 使用 TaskGroup 实现有界并发
     private func runBatch() async {
+        let urls = inputURLs
+        let totalFiles = urls.count
+        // 并发度上限：取 CPU 逻辑核心数，封顶 8（避免过多 GS 进程同时抢占内存）
+        let maxConcurrency = max(1, min(ProcessInfo.processInfo.activeProcessorCount, 8))
+
+        // 清理并重建基础临时目录
+        try? FileManager.default.removeItem(at: tempDir)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
         let envPATH = expandedPATH
         let shouldUseGS = useGS && findExecutablePath("gs") != nil
         let shouldUseQPDF = useQPDF && findExecutablePath("qpdf") != nil
         let shouldForceJPEG = forceJPEG
         let shouldJpegQuality = Int(jpegQuality)
         let resolution = Int(self.resolution)
+        let baseTempDir = self.tempDir
 
-        for (idx, input) in inputURLs.enumerated() {
-            await MainActor.run {
-                self.currentBatchIndex = idx
-                self.batchProgress = Double(idx) / Double(self.inputURLs.count)
-                self.statusText = "批量压缩中 (\(idx+1)/\(self.inputURLs.count))…"
+        // 构建单个文件的输出路径
+        func outputURL(for input: URL) -> URL {
+            input.deletingLastPathComponent()
+                .appendingPathComponent("\(input.deletingPathExtension().lastPathComponent).compressed.pdf")
+        }
+
+        await withTaskGroup(of: (Int, BatchResult?).self) { group in
+            var nextIndex = 0
+
+            // 提交初始批次（最多 maxConcurrency 个）
+            for _ in 0..<min(maxConcurrency, totalFiles) {
+                let idx = nextIndex
+                let input = urls[idx]
+                let outURL = outputURL(for: input)
+                group.addTask { [weak self] in
+                    guard let self else { return (idx, nil) }
+                    let result = await self.compressOneFile(
+                        input: input, outputURL: outURL, baseTempDir: baseTempDir,
+                        envPATH: envPATH, shouldUseGS: shouldUseGS,
+                        shouldUseQPDF: shouldUseQPDF, shouldForceJPEG: shouldForceJPEG,
+                        shouldJpegQuality: shouldJpegQuality, resolution: resolution
+                    )
+                    return (idx, result)
+                }
+                nextIndex += 1
             }
 
-            let outputURL = input.deletingLastPathComponent()
-                .appendingPathComponent("\(input.deletingPathExtension().lastPathComponent).compressed.pdf")
+            // 标记初始活跃文件
+            self.processingBatchIndices = Set(0..<nextIndex)
 
-            do {
-                // 清理临时目录
-                try? FileManager.default.removeItem(at: tempDir)
-                try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-
-                // 先将原文件复制到临时目录，绝不移动/删除原文件
-                let workingInput = tempDir.appendingPathComponent("working_input.pdf")
-                try FileManager.default.copyItem(at: input, to: workingInput)
-                var currentInput = workingInput
-
-                // Step 1: qpdf 前置修复与解密
-                if shouldUseQPDF {
-                    await MainActor.run { self.statusText = "批量压缩中 (\(idx+1)/\(self.inputURLs.count)) 修复解密…" }
-                    let sanitized = tempDir.appendingPathComponent("sanitized.pdf")
-                    let qpdfPath = try await findExecutable("qpdf", path: envPATH)
-                    _ = try await runProcessWithOutput(
-                        executable: qpdfPath,
-                        arguments: ["--decrypt", currentInput.path, sanitized.path],
-                        path: envPATH
-                    )
-                    if FileManager.default.fileExists(atPath: sanitized.path) {
-                        currentInput = sanitized
-                    }
-                }
-
-                // Step 2: GS 压缩
-                let gsOutput = tempDir.appendingPathComponent("gs_output.pdf")
-
-                if shouldUseGS {
-                    await MainActor.run { self.statusText = "批量压缩中 (\(idx+1)/\(self.inputURLs.count)) gs…" }
-                    let gsPath = try await findExecutable("gs", path: envPATH)
-                    _ = try await runProcessWithProgress(
-                        executable: gsPath,
-                        arguments: gsArgs(input: currentInput, output: gsOutput, resolution: resolution, forceJPEG: shouldForceJPEG, jpegQuality: shouldJpegQuality),
-                        path: envPATH,
-                        progressParser: PDFCompressor.gsProgressParser(totalPages: 0)
-                    )
-                    guard FileManager.default.fileExists(atPath: gsOutput.path),
-                          (try? FileManager.default.attributesOfItem(atPath: gsOutput.path)[.size] as? UInt64) ?? 0 > 0 else {
-                        throw CompressError.processFailed("gs 未生成有效输出")
-                    }
-                    currentInput = gsOutput
-                }
-
-                // Step 3: qpdf 线性化
-                let finalOutput: URL
-                if shouldUseQPDF {
-                    await MainActor.run { self.statusText = "批量压缩中 (\(idx+1)/\(self.inputURLs.count)) qpdf…" }
-                    let qpdfOutput = tempDir.appendingPathComponent("qpdf_output.pdf")
-                    let qpdfPath = try await findExecutable("qpdf", path: envPATH)
-                    _ = try await runProcessWithProgress(
-                        executable: qpdfPath,
-                        arguments: ["--linearize", currentInput.path, qpdfOutput.path],
-                        path: envPATH
-                    )
-                    guard FileManager.default.fileExists(atPath: qpdfOutput.path) else {
-                        throw CompressError.processFailed("qpdf 未生成有效输出")
-                    }
-                    finalOutput = qpdfOutput
+            // 收集结果，每完成一个就补充新任务（保持并发度）
+            for await (idx, result) in group {
+                if let result = result {
+                    self.batchResults[idx] = result
                 } else {
-                    finalOutput = currentInput
-                }
-
-                // 写入结果（含防劣化保护）
-                let inputSize = (try? FileManager.default.attributesOfItem(atPath: input.path)[.size] as? UInt64) ?? 0
-
-                if FileManager.default.fileExists(atPath: outputURL.path) {
-                    try FileManager.default.removeItem(at: outputURL)
-                }
-                try FileManager.default.moveItem(at: finalOutput, to: outputURL)
-                try? FileManager.default.removeItem(at: tempDir)
-
-                // 防劣化：压缩后反而变大则替换为原文件
-                let finalSize = (try? FileManager.default.attributesOfItem(atPath: outputURL.path)[.size] as? UInt64) ?? 0
-                if finalSize > inputSize && inputSize > 0 {
-                    try? FileManager.default.removeItem(at: outputURL)
-                    try FileManager.default.copyItem(at: input, to: outputURL)
-                }
-
-                let actualSize = (try? FileManager.default.attributesOfItem(atPath: outputURL.path)[.size] as? UInt64) ?? 0
-                let ratio = inputSize > 0 ? String(format: "%.1f%%", Double(actualSize) / Double(inputSize) * 100) : "—"
-
-                await MainActor.run {
-                    self.batchResults.append(BatchResult(
-                        inputURL: input, outputURL: outputURL,
-                        originalSize: self.formattedSize(inputSize),
-                        finalSize: self.formattedSize(actualSize),
-                        compressionRatio: ratio, success: true, message: "完成"
-                    ))
-                }
-
-            } catch {
-                await MainActor.run {
-                    self.batchResults.append(BatchResult(
-                        inputURL: input, outputURL: input,
+                    // self 已释放，标记为失败
+                    self.batchResults[idx] = BatchResult(
+                        inputURL: urls[idx], outputURL: nil,
                         originalSize: "—", finalSize: "—",
-                        compressionRatio: "—", success: false,
-                        message: error.localizedDescription
-                    ))
+                        compressionRatio: "—", success: false, message: "已取消"
+                    )
+                }
+                self.processingBatchIndices.remove(idx)
+                self.completedBatchCount += 1
+                self.batchProgress = Double(self.completedBatchCount) / Double(totalFiles)
+                self.statusText = "批量压缩中（\(self.completedBatchCount)/\(totalFiles) 完成）…"
+
+                // 补充下一个任务
+                if nextIndex < totalFiles {
+                    let newIdx = nextIndex
+                    let input = urls[newIdx]
+                    let outURL = outputURL(for: input)
+                    group.addTask { [weak self] in
+                        guard let self else { return (newIdx, nil) }
+                        let result = await self.compressOneFile(
+                            input: input, outputURL: outURL, baseTempDir: baseTempDir,
+                            envPATH: envPATH, shouldUseGS: shouldUseGS,
+                            shouldUseQPDF: shouldUseQPDF, shouldForceJPEG: shouldForceJPEG,
+                            shouldJpegQuality: shouldJpegQuality, resolution: resolution
+                        )
+                        return (newIdx, result)
+                    }
+                    nextIndex += 1
+                    self.processingBatchIndices.insert(newIdx)
                 }
             }
         }
 
-        await MainActor.run {
-            self.isBatchCompressing = false
-            self.batchProgress = 1.0
-            let ok = self.batchResults.filter { $0.success }.count
-            self.statusText = "批量完成（\(ok)/\(self.inputURLs.count) 成功）"
+        // 清理基础临时目录
+        try? FileManager.default.removeItem(at: baseTempDir)
+
+        self.isBatchCompressing = false
+        self.batchProgress = 1.0
+        self.processingBatchIndices.removeAll()
+        let ok = self.batchResults.compactMap { $0 }.filter { $0.success }.count
+        self.statusText = "批量完成（\(ok)/\(totalFiles) 成功）"
+    }
+
+    /// 压缩单个文件（可并发调用，每次使用独立临时子目录避免写冲突）
+    private func compressOneFile(
+        input: URL,
+        outputURL: URL,
+        baseTempDir: URL,
+        envPATH: String,
+        shouldUseGS: Bool,
+        shouldUseQPDF: Bool,
+        shouldForceJPEG: Bool,
+        shouldJpegQuality: Int,
+        resolution: Int
+    ) async -> BatchResult {
+        // 每个文件独立临时子目录，避免并发写冲突
+        let taskTempDir = baseTempDir.appendingPathComponent(UUID().uuidString, isDirectory: true)
+
+        do {
+            try FileManager.default.createDirectory(at: taskTempDir, withIntermediateDirectories: true)
+
+            // 先将原文件复制到临时目录，绝不移动/删除原文件
+            let workingInput = taskTempDir.appendingPathComponent("working_input.pdf")
+            try FileManager.default.copyItem(at: input, to: workingInput)
+            var currentInput = workingInput
+
+            // Step 1: qpdf 前置修复与解密
+            if shouldUseQPDF {
+                let sanitized = taskTempDir.appendingPathComponent("sanitized.pdf")
+                let qpdfPath = try await findExecutable("qpdf", path: envPATH)
+                _ = try await runProcessWithOutput(
+                    executable: qpdfPath,
+                    arguments: ["--decrypt", currentInput.path, sanitized.path],
+                    path: envPATH
+                )
+                if FileManager.default.fileExists(atPath: sanitized.path) {
+                    currentInput = sanitized
+                }
+            }
+
+            // Step 2: GS 压缩（批量模式不解析单文件进度，避免多并发时主线程争用）
+            let gsOutput = taskTempDir.appendingPathComponent("gs_output.pdf")
+            if shouldUseGS {
+                let gsPath = try await findExecutable("gs", path: envPATH)
+                _ = try await runProcessWithProgress(
+                    executable: gsPath,
+                    arguments: gsArgs(input: currentInput, output: gsOutput, resolution: resolution, forceJPEG: shouldForceJPEG, jpegQuality: shouldJpegQuality),
+                    path: envPATH,
+                    progressParser: nil
+                )
+                guard FileManager.default.fileExists(atPath: gsOutput.path),
+                      (try? FileManager.default.attributesOfItem(atPath: gsOutput.path)[.size] as? UInt64) ?? 0 > 0 else {
+                    throw CompressError.processFailed("gs 未生成有效输出")
+                }
+                currentInput = gsOutput
+            }
+
+            // Step 3: qpdf 线性化
+            let finalOutput: URL
+            if shouldUseQPDF {
+                let qpdfOutput = taskTempDir.appendingPathComponent("qpdf_output.pdf")
+                let qpdfPath = try await findExecutable("qpdf", path: envPATH)
+                _ = try await runProcessWithOutput(
+                    executable: qpdfPath,
+                    arguments: ["--linearize", currentInput.path, qpdfOutput.path],
+                    path: envPATH
+                )
+                guard FileManager.default.fileExists(atPath: qpdfOutput.path) else {
+                    throw CompressError.processFailed("qpdf 未生成有效输出")
+                }
+                finalOutput = qpdfOutput
+            } else {
+                finalOutput = currentInput
+            }
+
+            // 写入结果（含防劣化保护）
+            let inputSize = (try? FileManager.default.attributesOfItem(atPath: input.path)[.size] as? UInt64) ?? 0
+
+            if FileManager.default.fileExists(atPath: outputURL.path) {
+                try FileManager.default.removeItem(at: outputURL)
+            }
+            try FileManager.default.moveItem(at: finalOutput, to: outputURL)
+            try? FileManager.default.removeItem(at: taskTempDir)
+
+            // 防劣化：压缩后反而变大则替换为原文件
+            let finalSize = (try? FileManager.default.attributesOfItem(atPath: outputURL.path)[.size] as? UInt64) ?? 0
+            let isDegraded = finalSize > inputSize && inputSize > 0
+            if isDegraded {
+                try? FileManager.default.removeItem(at: outputURL)
+                try FileManager.default.copyItem(at: input, to: outputURL)
+            }
+
+            let actualSize: UInt64 = isDegraded ? inputSize : finalSize
+            let ratio: String
+            if isDegraded {
+                ratio = "100.0% (防劣化)"
+            } else if inputSize > 0 {
+                ratio = String(format: "%.1f%%", Double(actualSize) / Double(inputSize) * 100)
+            } else {
+                ratio = "—"
+            }
+
+            return BatchResult(
+                inputURL: input, outputURL: outputURL,
+                originalSize: formattedSize(inputSize),
+                finalSize: formattedSize(actualSize),
+                compressionRatio: ratio, success: true, message: "完成"
+            )
+        } catch {
+            try? FileManager.default.removeItem(at: taskTempDir)
+            return BatchResult(
+                inputURL: input, outputURL: input,
+                originalSize: "—", finalSize: "—",
+                compressionRatio: "—", success: false,
+                message: error.localizedDescription
+            )
         }
     }
 

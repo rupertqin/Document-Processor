@@ -5,7 +5,7 @@ macOS 原生 PDF 压缩工具，基于 Ghostscript + qpdf，Swift/SwiftUI 构建
 ## 功能
 
 - **单文件压缩** — 拖拽或选择 PDF，一键压缩
-- **批量压缩** — 同时拖入多个文件，队列式处理
+- **批量压缩** — 同时拖入多个文件，多线程并发处理（有界并发，上限 8）
 - **三档预设** — 低质量 / 中质量（推荐）/ 高质量，一键切换
 - **自定义参数** — 分辨率、JPEG 质量、编码方式均可微调
 - **一键安装依赖** — 缺少 ghostscript/qpdf 时自动检测并提供 Homebrew 安装
@@ -167,6 +167,14 @@ xcodegen generate
 - `StderrBuffer` — `NSLock` 保护的线程安全缓冲区，用于 Process 回调中的 stderr 累积
 - `ProgressParserState` — `@unchecked Sendable` 类，用于 `gsProgressParser` 闭包中的可变状态
 - `_sizeFormatter` — `ByteCountFormatter` 扩展为 `@unchecked Sendable`，用于 `nonisolated` 的 `formattedSize`
+- `BatchResult` — `Sendable` 结构体，可跨 `TaskGroup` 子任务传递
+
+### 批量并发
+
+- 使用 `withTaskGroup` 实现有界并发，并发度 = `min(CPU核心数, 8)`
+- 每个文件使用独立临时子目录（`baseTempDir/<UUID>/`），避免并发写冲突
+- 子任务通过 `await self.compressOneFile(...)` 在 MainActor 上执行，子进程运行时 MainActor 挂起释放，实现真正并发
+- 进度跟踪：`completedBatchCount`（已完成数）+ `processingBatchIndices`（正在处理的文件索引集合）
 
 ### Swift 并发
 

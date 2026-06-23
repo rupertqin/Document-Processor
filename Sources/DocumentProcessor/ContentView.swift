@@ -291,7 +291,7 @@ struct ContentView: View {
                 if compressor.isBatchCompressing {
                     ProgressView()
                         .controlSize(.small)
-                    Text("\(compressor.currentBatchIndex + 1)/\(compressor.inputURLs.count)")
+                    Text("\(compressor.completedBatchCount)/\(compressor.inputURLs.count)")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -313,8 +313,7 @@ struct ContentView: View {
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                             Spacer()
-                            if idx < compressor.batchResults.count {
-                                let r = compressor.batchResults[idx]
+                            if idx < compressor.batchResults.count, let r = compressor.batchResults[idx] {
                                 if r.success {
                                     Text(r.compressionRatio)
                                         .font(.caption2)
@@ -324,7 +323,7 @@ struct ContentView: View {
                                         .font(.caption2)
                                         .foregroundStyle(.red)
                                 }
-                            } else if compressor.isBatchCompressing && idx == compressor.currentBatchIndex {
+                            } else if compressor.isBatchCompressing && compressor.processingBatchIndices.contains(idx) {
                                 ProgressView()
                                     .controlSize(.mini)
                             }
