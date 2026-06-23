@@ -30,22 +30,23 @@ struct ContentView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
 
-            // 批量队列
+            // 批量队列（弹性可收缩区域，空间不足时自动压缩，内部 ScrollView 滚动）
             if !compressor.inputURLs.isEmpty {
                 batchFileList
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
+                    .layoutPriority(0)
             }
 
-            Spacer(minLength: 0)
-
-            // 底部
+            // 底部固定栏（最高优先级，保证始终可见）
             bottomBar
                 .padding(.horizontal, 20)
+                .padding(.top, 8)
                 .padding(.bottom, 16)
+                .layoutPriority(1)
         }
         .background(Color(NSColor.windowBackgroundColor))
-        .frame(minWidth: 480, minHeight: 360)
+        .frame(minWidth: 520, minHeight: 480)
         // 预设联动：选择预设 → 应用参数
         .onChange(of: compressor.selectedPreset) { _, newValue in
             compressor.applyPreset(newValue)
@@ -339,7 +340,7 @@ struct ContentView: View {
                     }
                 }
             }
-            .frame(height: min(CGFloat(compressor.inputURLs.count) * 24 + 10, 150))
+            .frame(minHeight: 60, maxHeight: 150)
         }
         .padding(12)
         .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
